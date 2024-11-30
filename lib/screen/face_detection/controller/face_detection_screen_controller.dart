@@ -1,4 +1,6 @@
+import 'dart:async';  // Import Timer class
 import 'package:camera/camera.dart';
+import 'package:driver_sleep_detection/assets_path.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,9 +11,37 @@ import 'package:permission_handler/permission_handler.dart';
 
 class FaceDetectionScreenController extends GetxController {
   CameraController? cameraController;
-  RxBool isCameraInitialized = false.obs;
+  bool isCameraInitialized = false;
   bool isDetecting = false;
   bool alarmTriggered = false;
+
+  String defaultSound = 'alarm.mp3';
+  RxInt detectionInterval = 1.obs; // Default to 1 minute
+  Timer? _intervalTimer; // Timer for periodically triggering face detection
+
+  void setInterval(int minutes) {
+    detectionInterval.value = minutes;
+    // If detection is running, restart the interval timer
+    if (isDetecting) {
+      _startIntervalTimer();
+    }
+  }
+
+  void _startIntervalTimer() {
+    _intervalTimer?.cancel(); // Cancel any previous timer
+    _intervalTimer = Timer.periodic(Duration(minutes: detectionInterval.value), (timer) {
+      if (isDetecting) {
+        Logger().i('Triggering detection check after ${detectionInterval.value} minute(s)');
+        detectionStatus.value = 'Checking for Sleep...';
+        update();
+
+        // Call face detection function periodically
+        // Pass the actual CameraImage from the stream, not a new one
+        // You might want to refactor how you handle the CameraImage here
+      }
+    });
+  }
+
 
   final FaceDetector faceDetector = FaceDetector(
     options: FaceDetectorOptions(
@@ -47,7 +77,7 @@ class FaceDetectionScreenController extends GetxController {
 
       final cameras = await availableCameras();
       final frontCamera = cameras.firstWhere(
-        (camera) => camera.lensDirection == CameraLensDirection.front,
+            (camera) => camera.lensDirection == CameraLensDirection.front,
         orElse: () => cameras.first,
       );
 
@@ -58,7 +88,7 @@ class FaceDetectionScreenController extends GetxController {
       );
 
       await cameraController?.initialize();
-      isCameraInitialized.value = true;
+      isCameraInitialized = true;
       update();
     } catch (e) {
       detectionStatus.value = 'Camera initialization error: $e';
@@ -68,7 +98,7 @@ class FaceDetectionScreenController extends GetxController {
 
   void startDetection() {
     if (isDetecting) return;
-    if (!isCameraInitialized.value) {
+    if (!isCameraInitialized) {
       detectionStatus.value = 'Camera not initialized';
       return;
     }
@@ -94,6 +124,9 @@ class FaceDetectionScreenController extends GetxController {
         isProcessingFrame = false;
       }
     });
+
+    // Start the interval timer after detection starts
+    _startIntervalTimer();
   }
 
   void stopDetection() {
@@ -103,6 +136,9 @@ class FaceDetectionScreenController extends GetxController {
     cameraController?.stopImageStream();
     update();
     stopAlarm();
+
+    // Cancel the interval timer when detection is stopped
+    _intervalTimer?.cancel();
   }
 
   Future<void> processImage(CameraImage image) async {
@@ -138,7 +174,7 @@ class FaceDetectionScreenController extends GetxController {
     if (alarmTriggered) return;
     alarmTriggered = true;
     Logger().i("Alarm triggered!");
-    audioPlayer.play(AssetSource('alarm.mp3')).catchError((error) {
+    audioPlayer.play(AssetSource(defaultSound)).catchError((error) {
       Logger().e("Error playing alarm: $error");
     });
   }

@@ -1,9 +1,9 @@
-
 import 'package:camera/camera.dart';
 import 'package:driver_sleep_detection/screen/face_detection/controller/face_detection_screen_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
+import '../face_detection_settings/advanced_settings_screen.dart'; // Import the settings page
 
 class FaceDetectionScreen extends StatefulWidget {
   const FaceDetectionScreen({super.key});
@@ -20,62 +20,106 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Driver Sleep Detection'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.cyan,
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          // Top half: Camera view
+          // Top half: Camera view (Wrapped in Obx to reactively show the camera when initialized)
           Expanded(
             flex: 2,
-            child: Obx(() {
-              if (_controller.isCameraInitialized.value) {
-                return SizedBox(
-                  width: double.maxFinite,
-                  child: CameraPreview(_controller.cameraController!),
-                );
-              } else {
-                return const Center(child: CircularProgressIndicator());
-              }
-            }),
+            child: GetBuilder<FaceDetectionScreenController>(
+              builder: (controller) {
+                if (_controller.isCameraInitialized) {
+                  return SizedBox(
+                    width: double.maxFinite,
+                    child: CameraPreview(_controller.cameraController!),
+                  );
+                } else {
+                  return const Center(child: CircularProgressIndicator());
+                }
+              },
+            ),
           ),
-          // Bottom half: Start/Stop button and status
+          // Bottom half: Status, Start/Stop button, settings, and PiP
           Expanded(
             flex: 1,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Stack(
               children: [
-                Obx(
-                  () {
+                // Status text at the top center (Wrapped in Obx to reactively show status)
+                Positioned(
+                  top: 20,
+                  left: 0,
+                  right: 0,
+                  child: Obx(() {
                     Logger().e(_controller.detectionStatus.value);
                     return Text(
                       'Status: ${_controller.detectionStatus.value}',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-                GetBuilder<FaceDetectionScreenController>(
-                  builder: (controller) {
-                    return ElevatedButton(
-                      onPressed: () {
-                        if (controller.isDetecting) {
-                          controller.stopDetection();
-                        } else {
-                          controller.startDetection();
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 15,horizontal: 13),
-                        shape:RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        )
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: Text(controller.isDetecting ? 'Stop' : 'Start Detection'),
                     );
-                  },
+                  }),
+                ),
+                // Centered Start/Stop button (Wrapped in Obx to reactively toggle button text)
+                Center(
+                  child: GetBuilder<FaceDetectionScreenController>(
+                    builder: (controller) {
+                      return ElevatedButton(
+                        onPressed: () {
+                          if (_controller.isDetecting) {
+                            _controller.stopDetection();
+                          } else {
+                            _controller.startDetection();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyan,
+                          foregroundColor: Colors.black,
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(40),
+                          elevation: 5,
+                        ),
+                        child: Text(
+                          _controller.isDetecting ? 'Stop' : 'Start',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                // PiP Icon button (left bottom corner)
+                Positioned(
+                  bottom: 20,
+                  left: 20, // Symmetrical to the settings icon
+                  child: IconButton(
+                    onPressed: () {
+                      // Handle PiP functionality here
+                      Logger().i("PiP button clicked");
+                    },
+                    icon: const Icon(Icons.picture_in_picture_alt),
+                    color: Colors.cyan,
+                    iconSize: 50,
+                  ),
+                ),
+                // Advanced Settings icon button in the bottom-right corner
+                Positioned(
+                  bottom: 20,
+                  right: 20,
+                  child: IconButton(
+                    onPressed: () {
+                      Get.to(() => const AdvancedSettingsScreen());
+                    },
+                    icon: const Icon(Icons.settings),
+                    color: Colors.cyan,
+                    iconSize: 50,
+                  ),
                 ),
               ],
             ),
