@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:driver_sleep_detection/screen/face_detection/controller/face_detection_screen_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_uvc_camera/flutter_uvc_camera.dart';
 import 'package:get/get.dart';
 import 'package:logger/logger.dart';
 import '../face_detection_settings/advanced_settings_screen.dart'; // Import the settings page
@@ -13,7 +14,28 @@ class FaceDetectionScreen extends StatefulWidget {
 }
 
 class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
-  final FaceDetectionScreenController _controller = Get.find<FaceDetectionScreenController>();
+  final FaceDetectionScreenController _controller =
+      Get.find<FaceDetectionScreenController>();
+
+  Widget _buildCameraPreview() {
+    return GetBuilder<FaceDetectionScreenController>(
+      builder: (controller) {
+        if (!controller.isCameraInitialized) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.isExternalCamera) {
+          return UVCCameraView(
+            cameraController: controller.uvcCamera!,
+            width: 300,
+            height: 300,
+          );
+        } else {
+          return CameraPreview(controller.cameraController!);
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,17 +50,9 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           // Top half: Camera view (Wrapped in Obx to reactively show the camera when initialized)
           Expanded(
             flex: 2,
-            child: GetBuilder<FaceDetectionScreenController>(
-              builder: (controller) {
-                if (_controller.isCameraInitialized) {
-                  return SizedBox(
-                    width: double.maxFinite,
-                    child: CameraPreview(_controller.cameraController!),
-                  );
-                } else {
-                  return const Center(child: CircularProgressIndicator());
-                }
-              },
+            child: SizedBox(
+              width: double.maxFinite,
+              child: _buildCameraPreview(),
             ),
           ),
           // Bottom half: Status, Start/Stop button, settings, and PiP
@@ -95,7 +109,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                   ),
                 ),
                 // PiP Icon button (left bottom corner)
-                Positioned(
+                /*Positioned(
                   bottom: 20,
                   left: 20, // Symmetrical to the settings icon
                   child: IconButton(
@@ -107,7 +121,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                     color: Colors.cyan,
                     iconSize: 50,
                   ),
-                ),
+                ),*/
                 // Advanced Settings icon button in the bottom-right corner
                 Positioned(
                   bottom: 20,

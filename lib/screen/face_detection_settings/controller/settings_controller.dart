@@ -8,4 +8,3 @@ class SettingsController extends GetxController {
     update();  // Notify the UI to update if necessary
   }
 }
-

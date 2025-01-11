@@ -17,14 +17,19 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   @override
   void initState() {
-    super.initState(); // To get current device volume
-    FlutterVolumeController.getVolume()
-        .then((volume) =>  _currentVolume = volume ?? 0.0);
-    // Listen to system volume change
+    super.initState();
+    // Fetch current volume during initialization
+    FlutterVolumeController.getVolume().then((volume) {
+      setState(() {
+        _currentVolume = (volume ?? 0.0) * 100; // Convert 0-1 range to 0-100
+      });
+    });
+
+    // Listen to system volume changes
     FlutterVolumeController.addListener((volume) {
-      setState(() =>
-      // set is value in listener value
-      _currentVolume = volume);
+      setState(() {
+        _currentVolume = volume * 100; // Convert 0-1 range to 0-100
+      });
     });
   }
 
@@ -55,12 +60,12 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                 children: [
                   _buildMinimalRoundedButton(
                     'Use External Camera',
-                    () {},
+                    _handleExternalCamera,
                   ),
                   const SizedBox(height: 16),
                   _buildMinimalRoundedButton(
                     'Use Internal Camera',
-                    () {},
+                    _handleInternalCamera,
                   ),
                   const SizedBox(height: 16),
                   _buildMinimalRoundedButton('Use Interval Mode', () {
@@ -179,10 +184,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [
-                  Colors.cyan, // 0–25%
-                  Colors.cyan, // 25–50%
-                  Colors.cyan, // 50–75%
-                  Colors.cyan, // 75–100%
+                  Colors.cyan, // Gradient color for the track
+                  Colors.cyan,
                 ],
               ),
             ),
@@ -201,11 +204,13 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
           child: Slider(
             value: _currentVolume,
             min: 0,
-            max: 1,
+            max: 100, // Set the max value to 100
             onChanged: (value) {
-              _currentVolume = value;
-              FlutterVolumeController.setVolume( _currentVolume);
-              setState(() {});
+              setState(() {
+                _currentVolume = value; // Update the slider value
+              });
+              FlutterVolumeController.setVolume(
+                  value / 100); // Convert to 0-1 for FlutterVolumeController
             },
           ),
         ),
@@ -231,11 +236,10 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   void _setInterval(int minutes) {
     // Assuming _controller is your FaceDetectionScreenController instance
-    Get.find<FaceDetectionScreenController>().setInterval(minutes); // Call setInterval on the controller
+    Get.find<FaceDetectionScreenController>()
+        .setInterval(minutes); // Call setInterval on the controller
     Navigator.pop(context); // Close the interval options popup
   }
-
-
 
   void _showAudioOptions(BuildContext context) {
     _showCustomPopup(
@@ -243,12 +247,19 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
       title: 'Select Audio',
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: _buildAudioOptions(['sound1.mp3', 'sound2.mp3', 'sound3.mp3', 'sound4.mp3', 'sound5.mp3']),
+        children: _buildAudioOptions([
+          'sound1.mp3',
+          'sound2.mp3',
+          'sound3.mp3',
+          'sound4.mp3',
+          'sound5.mp3'
+        ]),
       ),
     );
   }
 
-  void _showCustomPopup(BuildContext context, {required String title, required Widget child}) {
+  void _showCustomPopup(BuildContext context,
+      {required String title, required Widget child}) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -260,7 +271,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: _isDarkMode ? Colors.grey[900] : Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
             child: Material(
@@ -296,7 +308,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
           ),
         );
       },
-      transitionDuration: const Duration(milliseconds: 300), // Popup transition duration
+      transitionDuration:
+          const Duration(milliseconds: 300), // Popup transition duration
     );
   }
 
@@ -312,7 +325,10 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor:
-                  Get.find<FaceDetectionScreenController>().defaultSound == option ? Colors.cyan : Colors.grey.shade700,
+                  Get.find<FaceDetectionScreenController>().defaultSound ==
+                          option
+                      ? Colors.cyan
+                      : Colors.grey.shade700,
               foregroundColor: _isDarkMode ? Colors.black : Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 15),
               minimumSize: const Size(250, 50),
@@ -352,5 +368,17 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _handleExternalCamera() async {
+    final controller = Get.find<FaceDetectionScreenController>();
+    await controller.switchToExternalCamera();
+    Get.back(); // Return to face detection screen
+  }
+
+  void _handleInternalCamera() async {
+    final controller = Get.find<FaceDetectionScreenController>();
+    await controller.switchToInternalCamera();
+    Get.back(); // Return to face detection screen
   }
 }

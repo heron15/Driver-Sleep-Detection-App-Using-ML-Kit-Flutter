@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const FaceDetectionScreen(),
+      home:  FaceDetectionScreen(),
       initialBinding: Dependency(),
     );
   }

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-  
-</PreferenceScreen>
+<resources>
+    <!-- Common USB webcam vendors -->
+    <usb-device vendor-id="0x046d" /> <!-- Logitech -->
+    <usb-device vendor-id="0x0c45" /> <!-- Microdia -->
+    <usb-device vendor-id="0x045e" /> <!-- Microsoft -->
+    <usb-device vendor-id="0x0ac8" /> <!-- Z-Star Microelectronics -->
+</resources>
